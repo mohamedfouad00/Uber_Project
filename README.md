@@ -180,7 +180,7 @@ This project transforms raw booking data into an executive-ready decision framew
 ---
 
 ### 6. Ride Performance (Excel)
-![Ride Performance](Dashboards/Ride_Performance.png)
+![Ride Performance](Dashboards/Performance_Report.png)
 
 **Purpose:** Excel-based self-service performance view with gauges and reason breakdowns
 **Features:** Cancellation reason donuts (customer & driver), payment method bars, driver/customer rating buckets, completed vs. cancelled donut
