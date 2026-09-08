@@ -148,7 +148,7 @@ This project transforms raw booking data into an executive-ready decision framew
 ---
 
 ### 2. Financial Report
-![Financial Report](Dashboards/Financial_Report.png)
+![Financial Report](Dashboards/Ride_Performance.png)
 
 **Purpose:** Monitor booking value against quarterly targets
 **Key Metrics:** Total Booking Value, Leading Type/Payment, Revenue by Month, Revenue by Location, Booking Type & Payment Method donuts
