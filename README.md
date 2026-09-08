@@ -1,9 +1,9 @@
 # Uber Ride-Hailing Performance Analytics
 
-![Status](https://img.shields.io/badge/Status-Completed-1D3557?style=for-the-badge&logo=github&logoColor=white)
-![Tools](https://img.shields.io/badge/Tools-Power%20BI%20%7C%20Excel-457B9D?style=for-the-badge&logo=microsoftpowerbi&logoColor=white)
-![Database](https://img.shields.io/badge/Database-SQL%20Server-1D3557?style=for-the-badge&logo=microsoftsqlserver&logoColor=white)
-![Language](https://img.shields.io/badge/Language-Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Status](https://img.shields.io/badge/Status-Completed-000000?style=for-the-badge&logo=github&logoColor=white)
+![Tools](https://img.shields.io/badge/Tools-Power%20BI%20%7C%20Excel-000000?style=for-the-badge&logo=microsoftpowerbi&logoColor=white)
+![Database](https://img.shields.io/badge/Database-PostgreSQL-1F1F1F?style=for-the-badge&logo=postgresql&logoColor=white)
+![Language](https://img.shields.io/badge/Language-Python-404040?style=for-the-badge&logo=python&logoColor=white)
 
 A comprehensive ride-hailing analytics solution evaluating trip performance, cancellations, revenue, and geographic demand across 176 locations (Full Year, Jan–Dec) using SQL Server, Power BI (with Tabular Editor calculation groups), Excel, and dimensional modeling (Star Schema).
 
