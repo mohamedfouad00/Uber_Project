@@ -140,7 +140,7 @@ This project transforms raw booking data into an executive-ready decision framew
 ## Dashboards
 
 ### 1. Ride Performance Report
-![Performance Report](Dashboards/Performance_Report.png)
+![Performance Report](Dashboards/[Performance_Report].png)
 
 **Purpose:** Track completion vs. cancellation against target thresholds
 **Key Metrics:** Total Rides, Completed/Cancelled Display with gauges, Total Rides by Day, Booking-type breakdown
