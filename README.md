@@ -633,7 +633,7 @@ Uber-Ride-Hailing-Analytics/
 
 ## Reference Resources
 
-- [Power BI Live Reports](#)
+- [Power BI Live Reports](https://app.powerbi.com/reportEmbed?reportId=816cea26-b8c9-42cb-a1e9-5f2b91b159a0)
 - [Star Schema Design — Wikipedia](https://en.wikipedia.org/wiki/Star_schema)
 - [Uber Ride-Hailing Performance Report (Executive PDF)](Reports/Uber_Executive_Performance_Report.pdf)
 
