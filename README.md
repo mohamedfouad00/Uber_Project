@@ -147,7 +147,7 @@ This project transforms raw booking data into an executive-ready decision framew
 
 ---
 
-### 2. Revenue (Financial) Report
+### 2. Financial Report
 ![Financial Report](Dashboards/Financial_Report.png)
 
 **Purpose:** Monitor booking value against quarterly targets
@@ -155,7 +155,7 @@ This project transforms raw booking data into an executive-ready decision framew
 
 ---
 
-### 3. Locations Report
+### 3. Location Report
 ![Location Report](Dashboards/Location_Report.png)
 
 **Purpose:** Geographic demand and service-quality analysis
@@ -179,15 +179,23 @@ This project transforms raw booking data into an executive-ready decision framew
 
 ---
 
-### 6. Excel Interactive Dashboards
-![Business Dashboard](Dashboards/Excel_Business.png)
+### 6. Ride Performance (Excel)
+![Ride Performance](Dashboards/Ride_Performance.png)
 
-**Purpose:** Self-service analytics with dynamic filtering
-**Features:** Revenue by day/month, booking type & payment method breakdowns, cancellation reason donuts, pickup location bars, ride-distance and time-of-day trend lines
+**Purpose:** Excel-based self-service performance view with gauges and reason breakdowns
+**Features:** Cancellation reason donuts (customer & driver), payment method bars, driver/customer rating buckets, completed vs. cancelled donut
 
 ---
 
-### 7. Executive PDF Report
+### 7. Business Report (Excel)
+![Business Report](Dashboards/Business_Report.png)
+
+**Purpose:** Self-service analytics with dynamic filtering
+**Features:** Revenue by day/month, booking type & payment method breakdowns, top pickup locations, ride-distance and time-of-day trend lines
+
+---
+
+### 8. Executive PDF Report
 ![Executive Report](Reports/Uber_Executive_Performance_Report.pdf)
 
 **Purpose:** Consolidated, brand-styled report for leadership review
@@ -198,6 +206,8 @@ This project transforms raw booking data into an executive-ready decision framew
 ## Data Model & DAX
 
 ### Star Schema
+
+![Data Model](Dashboards/Data_Model.png)
 
 | Table | Type | Purpose |
 |---|---|---|
@@ -213,6 +223,8 @@ This project transforms raw booking data into an executive-ready decision framew
 | `Time Intelligence` | Calculation group | 9 reusable time-calc items |
 
 ### Time Intelligence Calculation Group
+
+![Time Intelligence Semantic Model](Dashboards/Time_Intelligance_Semantic_Model.png)
 
 Built in Tabular Editor as a single reusable calculation group applied across all measures, avoiding duplicate MoM/QoQ variants per metric:
 
@@ -247,9 +259,11 @@ VAR Top10Revenue =
 RETURN DIVIDE ( Top10Revenue, [Total Revenues], 0 )
 ```
 
-### Row-Level Security
+### Object-Level & Row-Level Security
 
-Two model roles were configured in Tabular Editor — **Full Access** and **Financial Restricted access** — to control visibility of revenue-sensitive measures by user group.
+![OLS](Dashboards/OLS.png)
+
+Two model roles were configured in Tabular Editor — **Full Access** and **Financial Restricted access** — controlling both **Object-Level Security (OLS)**, which hides revenue-sensitive tables/columns entirely for restricted users, and **Row-Level Security (RLS)**, which filters visible rows by role.
 
 ---
 
@@ -524,13 +538,13 @@ ORDER BY dd.Date, dt.[Time];
 
 ---
 
-## Tech Stack
+## 🛠️ Tech Stack
 
 | Component | Technology |
 |---|---|
 | **Database** | SQL Server 2019+ |
 | **Dashboards** | Power BI Desktop |
-| **Semantic Modeling** | Tabular Editor 2.28 (calculation groups, RLS roles) |
+| **Semantic Modeling** | Tabular Editor 2.28 (calculation groups, OLS/RLS roles) |
 | **Analysis** | Excel (Power Query, Power Pivot) |
 | **Language** | DAX / T-SQL |
 | **Modeling** | Star Schema (Dimensional) |
@@ -543,7 +557,7 @@ ORDER BY dd.Date, dt.[Time];
 ### Prerequisites
 - SQL Server 2019 or higher
 - Power BI Desktop (free or paid)
-- Tabular Editor 2.x (for calculation groups & RLS roles)
+- Tabular Editor 2.x (for calculation groups & OLS/RLS roles)
 - Excel 2016 or higher
 - Git (optional)
 
@@ -567,7 +581,7 @@ cd Uber-Ride-Hailing-Analytics
 
 4. **Open in Tabular Editor (optional)**
    - Connect to the live Power BI model
-   - Review the `Time Intelligence` calculation group and `Full Access` / `Financial Restricted access` roles
+   - Review the `Time Intelligence` calculation group and `Full Access` / `Financial Restricted access` roles (OLS + RLS)
 
 5. **Open Excel Dashboard**
    - Enable Power Query connections
@@ -597,12 +611,16 @@ EXEC sp_location_revenue_ranking;
 
 Uber-Ride-Hailing-Analytics/
 ├── Dashboards/
-│ ├── Performance_Report.png
+│ ├── Business_Report.png
+│ ├── Data_Model.png
+│ ├── Date_Report.png
 │ ├── Financial_Report.png
 │ ├── Location_Report.png
-│ ├── Date_Report.png
+│ ├── OLS.png
+│ ├── Performance_Report.png
+│ ├── Ride_Performance.png
 │ ├── Time_Frame_Report.png
-│ └── Excel_Business.png
+│ └── Time_Intelligance_Semantic_Model.png
 ├── SQL/
 │ ├── Schema_Creation.sql
 │ └── Analytical_Queries.sql
@@ -610,7 +628,6 @@ Uber-Ride-Hailing-Analytics/
 │ └── Uber_Executive_Performance_Report.pdf
 ├── README.md
 └── .gitignore
-
 
 ---
 
