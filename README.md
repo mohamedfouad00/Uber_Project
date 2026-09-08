@@ -538,7 +538,7 @@ ORDER BY dd.Date, dt.[Time];
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Component | Technology |
 |---|---|
