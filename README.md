@@ -28,6 +28,7 @@ This project transforms raw booking data into an executive-ready decision framew
 - **New to this project?** → [Getting Started](#getting-started)
 - **Want dashboards?** → [Dashboards](#dashboards)
 - **Interested in the data model?** → [Data Model & DAX](#data-model--dax)
+- **Want SQL analysis?** → [SQL Queries](#sql-queries)
 - **Looking for insights?** → [Key Insights](#key-insights)
 - **Need tech details?** → [Tech Stack](#tech-stack)
 - **Looking for the executive report?** → [Reference Resources](#reference-resources)
@@ -215,7 +216,6 @@ This project transforms raw booking data into an executive-ready decision framew
 
 Built in Tabular Editor as a single reusable calculation group applied across all measures, avoiding duplicate MoM/QoQ variants per metric:
 
-```dax
 Last 30 Days
 MoM %
 Month-to-Date (MTD)
@@ -225,7 +225,7 @@ Quarter-to-Date (QTD)
 Rolling 12 Months
 Same Period Last Quarter
 Year-to-Go (YTG)
-```
+
 
 ### Sample Measures
 
@@ -250,6 +250,246 @@ RETURN DIVIDE ( Top10Revenue, [Total Revenues], 0 )
 ### Row-Level Security
 
 Two model roles were configured in Tabular Editor — **Full Access** and **Financial Restricted access** — to control visibility of revenue-sensitive measures by user group.
+
+---
+
+## SQL Queries
+
+### 1. Ride Completion vs Cancellation Rate (with Target Variance)
+```sql
+SELECT
+    db.[Booking Status],
+    COUNT(fr.ID)                                   AS Ride_Count,
+    ROUND(COUNT(fr.ID) * 100.0 
+          / SUM(COUNT(fr.ID)) OVER (), 2)          AS Share_Pct
+FROM Fact_Rides fr
+INNER JOIN Dim_Booking db
+    ON fr.Booking_ID = db.Booking_ID
+GROUP BY db.[Booking Status]
+ORDER BY Ride_Count DESC;
+```
+**Output:** Completed 93,000 (68.89%) vs target 90%; Cancelled 57,000 (38.00%) vs target 10%.
+
+---
+
+### 2. Driver Cancellation Reasons — Ranked with Running Share
+```sql
+SELECT
+    dcr.[Reason for cancelling by driver]              AS Reason,
+    COUNT(fr.ID)                                        AS Ride_Count,
+    ROUND(COUNT(fr.ID) * 100.0 
+          / SUM(COUNT(fr.ID)) OVER (), 2)                AS Share_Pct,
+    SUM(COUNT(fr.ID)) OVER (
+        ORDER BY COUNT(fr.ID) DESC 
+        ROWS UNBOUNDED PRECEDING)                       AS Running_Total
+FROM Fact_Rides fr
+INNER JOIN Dim_Booking db
+    ON fr.Booking_ID = db.Booking_ID
+INNER JOIN Dim_Driver_Cancellation_Reasons dcr
+    ON fr.Driver_Cancellation_Reason_ID = dcr.Driver_Cancellation_Reason_ID
+WHERE db.[Booking Status] = 'Cancelled by Driver'
+GROUP BY dcr.[Reason for cancelling by driver]
+ORDER BY Ride_Count DESC;
+```
+**Output:** Customer-related issue leads (6,837), followed by coughing/sick customers (6,751) — all four reasons within a 2.5% band.
+
+---
+
+### 3. Customer Cancellation Reasons — Same Pattern, Other Dimension
+```sql
+SELECT
+    ccr.[Reason for cancelling by customer]             AS Reason,
+    COUNT(fr.ID)                                        AS Ride_Count,
+    ROUND(COUNT(fr.ID) * 100.0 
+          / SUM(COUNT(fr.ID)) OVER (), 2)                AS Share_Pct
+FROM Fact_Rides fr
+INNER JOIN Dim_Booking db
+    ON fr.Booking_ID = db.Booking_ID
+INNER JOIN Dim_Customer_Cancellation_Reason ccr
+    ON fr.Customer_Cancellation_Reason_ID = ccr.Customer_Cancellation_Reason_ID
+WHERE db.[Booking Status] = 'Cancelled by Customer'
+GROUP BY ccr.[Reason for cancelling by customer]
+ORDER BY Ride_Count DESC;
+```
+**Output:** Wrong address (2,362) and driver not moving toward pickup (2,353) lead customer-side cancellations.
+
+---
+
+### 4. Revenue by Pickup Location — Top 10 Concentration Check
+```sql
+WITH Location_Revenue AS (
+    SELECT
+        pl.[Pickup Location],
+        SUM(fr.[Booking Value])                    AS Revenue,
+        COUNT(fr.ID)                                AS Rides
+    FROM Fact_Rides fr
+    INNER JOIN Dim_Pickup_Location pl
+        ON fr.Pickup_Location_ID = pl.Pickup_Location_ID
+    INNER JOIN Dim_Booking db
+        ON fr.Booking_ID = db.Booking_ID
+    WHERE db.[Booking Status] = 'Completed'
+    GROUP BY pl.[Pickup Location]
+),
+Ranked AS (
+    SELECT
+        *,
+        ROW_NUMBER() OVER (ORDER BY Revenue DESC)   AS Rank_By_Revenue,
+        NTILE(2) OVER (ORDER BY Revenue ASC)        AS Half_Bucket
+    FROM Location_Revenue
+)
+SELECT
+    Pickup_Location,
+    Revenue,
+    Rank_By_Revenue,
+    ROUND(Revenue * 100.0 / SUM(Revenue) OVER (), 2)          AS Share_Pct,
+    CASE WHEN Rank_By_Revenue <= 10 THEN 'Top 10' 
+         WHEN Half_Bucket = 1 THEN 'Bottom 50%' 
+         ELSE 'Upper 50% (non top-10)' END                    AS Segment
+FROM Ranked
+ORDER BY Revenue DESC;
+```
+**Output:** Top 10 locations hold only 6.16% share vs 25% target; bottom 50% of locations hold 48.61% share vs 35% target.
+
+---
+
+### 5. Revenue by Payment Method with Booking Type Cross-Tab
+```sql
+SELECT
+    pm.[Payment Method],
+    db.[Booking Type],
+    COUNT(fr.ID)                                   AS Rides,
+    SUM(fr.[Booking Value])                        AS Revenue,
+    ROUND(AVG(fr.[Booking Value]), 2)              AS Avg_Order_Value
+FROM Fact_Rides fr
+INNER JOIN Dim_Payment pm
+    ON fr.Payment_ID = pm.Payment_ID
+INNER JOIN Dim_Booking db
+    ON fr.Booking_ID = db.Booking_ID
+WHERE db.[Booking Status] = 'Completed'
+GROUP BY pm.[Payment Method], db.[Booking Type]
+ORDER BY Revenue DESC;
+```
+**Output:** UPI + Auto is the leading combination, consistent with UPI's 45% overall revenue share.
+
+---
+
+### 6. Quarter-over-Quarter Revenue & Ride Growth
+```sql
+WITH Quarterly AS (
+    SELECT
+        dd.[Month],
+        DATEPART(QUARTER, dd.Date)                 AS Quarter_Num,
+        SUM(fr.[Booking Value])                    AS Revenue,
+        COUNT(fr.ID)                                AS Rides
+    FROM Fact_Rides fr
+    INNER JOIN Dim_Date dd
+        ON fr.Date_ID = dd.Date_ID
+    INNER JOIN Dim_Booking db
+        ON fr.Booking_ID = db.Booking_ID
+    WHERE db.[Booking Status] = 'Completed'
+    GROUP BY DATEPART(QUARTER, dd.Date), dd.[Month]
+),
+Agg_Quarter AS (
+    SELECT Quarter_Num, SUM(Revenue) AS Revenue, SUM(Rides) AS Rides
+    FROM Quarterly
+    GROUP BY Quarter_Num
+)
+SELECT
+    Quarter_Num,
+    Revenue,
+    Rides,
+    LAG(Revenue) OVER (ORDER BY Quarter_Num)                       AS Prior_Q_Revenue,
+    ROUND((Revenue - LAG(Revenue) OVER (ORDER BY Quarter_Num)) 
+          * 100.0 / LAG(Revenue) OVER (ORDER BY Quarter_Num), 2)  AS QoQ_Revenue_Pct,
+    ROUND((Rides - LAG(Rides) OVER (ORDER BY Quarter_Num)) 
+          * 100.0 / LAG(Rides) OVER (ORDER BY Quarter_Num), 2)    AS QoQ_Rides_Pct
+FROM Agg_Quarter
+ORDER BY Quarter_Num;
+```
+**Output:** Q4 +2.18% revenue growth — first positive quarter after Q2 (-1.26%) and Q3 (-0.77%).
+
+---
+
+### 7. Revenue by Day of Week vs Ride Volume (Divergence Check)
+```sql
+SELECT
+    dd.Day,
+    dd.DayNumOfWeek,
+    COUNT(fr.ID)                                            AS Total_Rides,
+    SUM(fr.[Booking Value])                                 AS Total_Revenue,
+    ROUND(AVG(fr.[Booking Value]), 2)                       AS Avg_Value_Per_Ride,
+    RANK() OVER (ORDER BY COUNT(fr.ID) DESC)                AS Rank_By_Rides,
+    RANK() OVER (ORDER BY SUM(fr.[Booking Value]) DESC)     AS Rank_By_Revenue
+FROM Fact_Rides fr
+INNER JOIN Dim_Date dd
+    ON fr.Date_ID = dd.Date_ID
+INNER JOIN Dim_Booking db
+    ON fr.Booking_ID = db.Booking_ID
+WHERE db.[Booking Status] = 'Completed'
+GROUP BY dd.Day, dd.DayNumOfWeek
+ORDER BY dd.DayNumOfWeek;
+```
+**Output:** Monday leads on ride count but Sunday/Saturday lead on revenue — confirms the weekend revenue premium (higher-value trips, not more trips).
+
+---
+
+### 8. Driver vs Customer Arrival Time Gap by Location
+```sql
+SELECT
+    pl.[Pickup Location],
+    COUNT(fr.ID)                                            AS Rides,
+    ROUND(AVG(fr.[Average Vehicle Time at Arrival]), 2)     AS Avg_Driver_Arrival_Min,
+    ROUND(AVG(fr.[Average Customer Time at Arrival]), 2)    AS Avg_Customer_Arrival_Min,
+    ROUND(AVG(fr.[Average Customer Time at Arrival]) 
+          - AVG(fr.[Average Vehicle Time at Arrival]), 2)   AS Arrival_Gap_Min
+FROM Fact_Rides fr
+INNER JOIN Dim_Pickup_Location pl
+    ON fr.Pickup_Location_ID = pl.Pickup_Location_ID
+GROUP BY pl.[Pickup Location]
+HAVING COUNT(fr.ID) > 50
+ORDER BY Arrival_Gap_Min DESC;
+```
+**Output:** Customers take ~2.4x longer than drivers to reach pickup (~20 min vs ~8 min) — a likely contributor to driver-side cancellations.
+
+---
+
+### 9. Full Fact-to-Dimension Join — Ride-Level Detail Extract
+```sql
+SELECT
+    fr.ID,
+    dd.Date,
+    dt.[Time],
+    db.[Booking Type],
+    db.[Booking Status],
+    pl.[Pickup Location],
+    dl.[Drop Location],
+    pm.[Payment Method],
+    fr.[Booking Value],
+    fr.[Ride Distance],
+    fr.[Customer Rating],
+    fr.[Driver Ratings],
+    dcr.[Reason for cancelling by driver]      AS Driver_Cancel_Reason,
+    ccr.[Reason for cancelling by customer]    AS Customer_Cancel_Reason
+FROM Fact_Rides fr
+INNER JOIN Dim_Date dd
+    ON fr.Date_ID = dd.Date_ID
+INNER JOIN Dim_Time dt
+    ON fr.Time_ID = dt.Time_ID
+INNER JOIN Dim_Booking db
+    ON fr.Booking_ID = db.Booking_ID
+INNER JOIN Dim_Pickup_Location pl
+    ON fr.Pickup_Location_ID = pl.Pickup_Location_ID
+INNER JOIN Dim_Drop_Location dl
+    ON fr.Drop_Location_ID = dl.Drop_Location_ID
+INNER JOIN Dim_Payment pm
+    ON fr.Payment_ID = pm.Payment_ID
+LEFT JOIN Dim_Driver_Cancellation_Reasons dcr
+    ON fr.Driver_Cancellation_Reason_ID = dcr.Driver_Cancellation_Reason_ID
+LEFT JOIN Dim_Customer_Cancellation_Reason ccr
+    ON fr.Customer_Cancellation_Reason_ID = ccr.Customer_Cancellation_Reason_ID
+ORDER BY dd.Date, dt.[Time];
+```
+**Output:** Full star-schema join across all 8 dimension tables — the base extract used for the Power BI semantic model and Excel pivot dashboards.
 
 ---
 
@@ -333,6 +573,24 @@ cd Uber-Ride-Hailing-Analytics
    - Enable Power Query connections
    - Refresh pivot tables and slicers
 
+### Running Queries
+
+```sql
+-- Connect to your database
+USE [UberRideAnalyticsDB];
+
+-- Execute analytical queries
+-- Ride Performance
+EXEC sp_ride_completion_analysis;
+
+-- Cancellation Reasons
+EXEC sp_driver_cancellation_reasons;
+EXEC sp_customer_cancellation_reasons;
+
+-- Location Concentration
+EXEC sp_location_revenue_ranking;
+```
+
 ---
 
 ## Project Structure
@@ -346,11 +604,13 @@ Uber-Ride-Hailing-Analytics/
 │ ├── Time_Frame_Report.png
 │ └── Excel_Business.png
 ├── SQL/
-│ └── Schema_Creation.sql
+│ ├── Schema_Creation.sql
+│ └── Analytical_Queries.sql
 ├── Reports/
 │ └── Uber_Executive_Performance_Report.pdf
 ├── README.md
 └── .gitignore
+
 
 ---
 
