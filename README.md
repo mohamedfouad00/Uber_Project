@@ -633,7 +633,7 @@ Uber-Ride-Hailing-Analytics/
 
 ## Reference Resources
 
-- [Power BI Live Reports](https://app.powerbi.com/reportEmbed?reportId=816cea26-b8c9-42cb-a1e9-5f2b91b159a0)
+- [Power BI Live Reports](<iframe title="Uber Dashboard" width="600" height="373.5" src="https://app.powerbi.com/view?r=eyJrIjoiZThhMTEyYWItOGI4Yy00MjU2LThhMTMtNmJmYzg3NWIwODQ1IiwidCI6ImMzMGI1NDRmLWJhMTgtNGUyYy04YjllLTdmYWU5ZmU5NWUzYSJ9" frameborder="0" allowFullScreen="true"></iframe>)
 - [Star Schema Design — Wikipedia](https://en.wikipedia.org/wiki/Star_schema)
 - [Uber Ride-Hailing Performance Report (Executive PDF)](Reports/Uber_Executive_Performance_Report.pdf)
 
