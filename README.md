@@ -196,7 +196,7 @@ This project transforms raw booking data into an executive-ready decision framew
 ---
 
 ### 8. Executive PDF Report
-![Executive Report](Reports/Uber_Executive_Performance_Report.pdf)
+![Executive Report](Uber_Executive_Performance_Report.pdf)
 
 **Purpose:** Consolidated, brand-styled report for leadership review
 **Contents:** Executive summary, operations, revenue, geography, trends, and a prioritized action plan
